@@ -1,0 +1,62 @@
+
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.2.1'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenLocal()
+        jcenter()
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url "$rootDir/../node_modules/react-native/android"
+        }
+        google()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        versionName '0.0.1'
+        minSdkVersion 16
+        targetSdkVersion 28
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+    }
+}
+
+dependencies {
+    implementation 'com.facebook.react:react-native:+'
+    implementation 'com.google.android.exoplayer:exoplayer:2.9.2'
+    implementation 'com.google.android.exoplayer:extension-mediasession:2.6.1'
+}
