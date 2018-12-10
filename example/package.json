@@ -3,11 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": " adb -s 026845bc6657bb50 reverse tcp:8081 tcp:8081 && node node_modules/react-native/local-cli/cli.js start",
+    "start": "npm run android_debug && node node_modules/react-native/local-cli/cli.js start",
     "test": "jest",
     "haul": "haul",
-    "android": "npx haul start --platform android",
-    "ios": "npx haul start --platform ios"
+    "android": "npm run android_debug && npx haul start --platform android",
+    "ios": "npx haul start --platform ios",
+    "android_debug": "adb -s 026845bc6657bb50 reverse tcp:8081 tcp:8081"
   },
   "dependencies": {
     "react": "16.6.1",

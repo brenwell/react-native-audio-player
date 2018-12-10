@@ -23,11 +23,13 @@ import android.os.Bundle;
 import android.support.annotation.DrawableRes;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
+import android.util.Log;
 
 import com.facebook.react.bridge.ReadableMap;
 
 
 public final class RNAudioPlayerTrack {
+
     public final Uri uri;
     public final Uri artwork;
     public final String title;

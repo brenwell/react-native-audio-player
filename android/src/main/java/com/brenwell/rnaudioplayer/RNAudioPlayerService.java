@@ -21,19 +21,16 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.session.MediaSessionCompat;
-import android.util.Log;
 
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator;
-//import com.google.android.exoplayer2.source.ConcatenatingMediaSource;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -48,9 +45,11 @@ import com.google.android.exoplayer2.util.Util;
 
 public class RNAudioPlayerService extends Service {
 
-    public static final String TAG = "RNAudioPlayerService";
+    private static final String NAME = "Service";
 
-    IBinder mBinder = new LocalBinder();
+    IBinder binder;
+    int startMode = START_NOT_STICKY; // indicates how to behave if the service is killed
+    boolean allowRebind = true; // indicates whether onRebind should be used
 
     private RNAudioPlayerTrack currentTrack;
     private SimpleExoPlayer player;
@@ -58,9 +57,8 @@ public class RNAudioPlayerService extends Service {
     private MediaSessionCompat mediaSession;
     private MediaSessionConnector mediaSessionConnector;
 
-    public static final int PLAYBACK_CHANNEL_ID = 1;
     public static final int PLAYBACK_NOTIFICATION_ID = 1;
-    public static final String PLAYBACK_CHANNEL_NAME = "com.brenwell.rnaudioplayer.channelname";
+    public static final String PLAYBACK_CHANNEL_ID = "com.brenwell.rnaudioplayer.channelname";
     public static final String MEDIA_SESSION_TAG = "com.brenwell.rnaudioplayer.mediasession";
     public static final String APP_NAME = "com.brenwell.rnaudioplayer";
 
@@ -69,16 +67,16 @@ public class RNAudioPlayerService extends Service {
         super.onCreate();
         final Context context = this;
 
-        Log.d("Context", "add: " + context);
+        Logger.d(NAME, "onCreate ");
 
         player = ExoPlayerFactory.newSimpleInstance(context, new DefaultTrackSelector());
 
         playerNotificationManager = PlayerNotificationManager.createWithNotificationChannel(
-                context,
-                PLAYBACK_CHANNEL_NAME,
-                PLAYBACK_CHANNEL_ID,
-                PLAYBACK_NOTIFICATION_ID,
-                new MediaDescriptionAdapter() {
+            context,
+            PLAYBACK_CHANNEL_ID,
+            R.string.service_name,
+            PLAYBACK_NOTIFICATION_ID,
+            new MediaDescriptionAdapter() {
                     @Override
                     public String getCurrentContentTitle(Player player) {
                         return currentTrack.title;
@@ -100,11 +98,12 @@ public class RNAudioPlayerService extends Service {
                     @Override
                     public Bitmap getCurrentLargeIcon(Player player, BitmapCallback callback) {
                         return null;
-//                        return track.getBitmap(
-//                                context, track.bitmapResource);
+                        //return track.getBitmap(
+                                //context, track.bitmapResource);
                     }
-                }
+            }
         );
+
         playerNotificationManager.setNotificationListener(new NotificationListener() {
             @Override
             public void onNotificationStarted(int notificationId, Notification notification) {
@@ -120,6 +119,7 @@ public class RNAudioPlayerService extends Service {
 
         mediaSession = new MediaSessionCompat(context, MEDIA_SESSION_TAG);
         mediaSession.setActive(true);
+
         playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
 
         mediaSessionConnector = new MediaSessionConnector(mediaSession);
@@ -129,27 +129,128 @@ public class RNAudioPlayerService extends Service {
                 return currentTrack.getMediaDescription(context);
             }
         });
-        mediaSessionConnector.setPlayer(player, null);
 
+        mediaSessionConnector.setPlayer(player, null);
+    }
+
+    public void hideNotification()
+    {
+        playerNotificationManager.setPlayer(null);
     }
 
 
-    @Override
-    public void onDestroy() {
+    /**
+     * Tear down player, notification and serive
+     */
+    public void tearDown()
+    {
+        player.stop();
         mediaSession.release();
         mediaSessionConnector.setPlayer(null, null);
         playerNotificationManager.setPlayer(null);
         player.release();
         player = null;
+    }
+
+    /**
+     * onDestroy
+     */
+    @Override
+    public void onDestroy() {
+
+        Logger.d(NAME, "onDestroy");
+
+        tearDown();
 
         super.onDestroy();
     }
 
+
+    /**
+     * onTaskRemoved
+     * @param rootIntent
+     */
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+
+        Logger.d(NAME, "onTaskRemoved() called with: rootIntent = [" + rootIntent + "]");
+
+        tearDown();
+
+        super.onTaskRemoved(rootIntent);
+    }
+
+
+    /**
+     * onUnbind
+     * @param intent
+     * @return
+     */
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Logger.d(NAME, "onUnbind() called with: intent = [" + intent + "]");
+        // All clients have unbound with unbindService()
+
+        stopSelf();
+        return allowRebind;
+    }
+
+
+    /**
+     * onRebind
+     * @param intent
+     */
+    @Override
+    public void onRebind(Intent intent) {
+        Logger.d(NAME, "onRebind() called with: intent = [" + intent + "]");
+        // A client is binding to the service with bindService(),
+        // after onUnbind() has already been called
+    }
+
+
+    /**
+     * onBind
+     * @param intent
+     * @return
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+
+        Logger.d(NAME, "onBind");
+
+        if (binder == null){
+            binder = new Binder();
+        }
+
+        return binder;
+    }
+
+
+    /**
+     * onStartCommand
+     * @param intent
+     * @param flags
+     * @param startId
+     * @return
+     */
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+
+        Logger.d(NAME, "onStartCommand");
+        return startMode;
+    }
+
+
+    /**
+     *  Adds a single track to the Exoplayer
+     * @param track
+     */
     public void add(RNAudioPlayerTrack track) {
 
         currentTrack = track;
 
-        Log.d(TAG, "add: " + currentTrack);
+        Logger.d(NAME, "add: " + currentTrack);
 
         final Context context = this;
 
@@ -161,32 +262,27 @@ public class RNAudioPlayerService extends Service {
                 dataSourceFactory,
                 CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
 
-//        ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource();
-
         MediaSource mediaSource = new ExtractorMediaSource.Factory(cacheDataSourceFactory)
                 .createMediaSource(track.uri);
-//        concatenatingMediaSource.addMediaSource(mediaSource);
 
         player.prepare(mediaSource);
         player.setPlayWhenReady(true);
-
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        return START_STICKY;
-    }
-
-    public class LocalBinder extends Binder {
-        public RNAudioPlayerService getServerInstance() {
+    /**
+     * The Binder Class
+     */
+    public class Binder extends android.os.Binder
+    {
+        /**
+         * Gets a connection to the service
+         * @return
+         */
+        public RNAudioPlayerService getService() {
             return RNAudioPlayerService.this;
         }
     }
 }
+
+
+

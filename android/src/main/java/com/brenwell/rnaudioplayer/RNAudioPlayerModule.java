@@ -1,43 +1,63 @@
 
 package com.brenwell.rnaudioplayer;
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
 import android.util.Log;
 
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReadableMap;
-import com.google.android.exoplayer2.util.Util;
 
-import com.brenwell.rnaudioplayer.RNAudioPlayerService.LocalBinder;
 
 import java.util.Map;
 
 public class RNAudioPlayerModule extends ReactContextBaseJavaModule {
 
+    private static final String NAME = "Module";
     private final ReactApplicationContext reactContext;
+    private final RNAudioPlayerBinder binder = new RNAudioPlayerBinder();
 
-    public static final String TAG = "RNAudioPlayerModule";
 
-    boolean mBounded;
-    RNAudioPlayerService mServer;
-
+    /**
+     *  Recieves the react context
+     * @param reactContext
+     */
     public RNAudioPlayerModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
     }
 
+    /**
+     * Exports the class name to JS
+     * @return
+     */
     @Override
     public String getName() {
     return "RNAudioPlayer";
   }
 
+
+
+    @Override
+    public void initialize() {
+        ReactContext context = getReactApplicationContext();
+
+        Logger.d(NAME, "initialize() called");
+    }
+
+    @Override
+    public void onCatalystInstanceDestroy() {
+//        ReactContext context = getReactApplicationContext();
+
+        Logger.d(NAME, "onCatalystInstanceDestroy() called");
+    }
+
+    /**
+     * Exports all the constants to JS
+     * @return
+     */
     @Override
     public Map<String, Object> getConstants() {
         return RNAudioPlayerConstants.getConstants();
@@ -51,15 +71,33 @@ public class RNAudioPlayerModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void setup(final ReadableMap options, final Promise promise) {
 
-        Log.d(TAG, "setup: " + options);
+        Logger.d(NAME, "setup: " + options);
 
-        // Starts and Binds a service
         try {
-            Intent intent = new Intent(reactContext, RNAudioPlayerService.class);
-            reactContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-            Util.startForegroundService(reactContext, intent);
+            binder.startService(reactContext);
             promise.resolve(true);
-        } catch (Exception ex) {
+        }
+
+        catch (Exception ex) {
+            promise.reject("ERR_UNEXPECTED_EXCEPTION", ex);
+        }
+    }
+
+    /**
+     * Destroy Service
+     * @param promise
+     */
+    @ReactMethod
+    public void destroy(final Promise promise)
+    {
+        Logger.d(NAME, "destroy: ");
+
+        try{
+            binder.stopService();
+            promise.resolve(true);
+        }
+
+        catch (Exception ex) {
             promise.reject("ERR_UNEXPECTED_EXCEPTION", ex);
         }
     }
@@ -70,34 +108,34 @@ public class RNAudioPlayerModule extends ReactContextBaseJavaModule {
      * @param promise
      */
     @ReactMethod
-    public void add(final ReadableMap options, final Promise promise) {
+    public void add(final ReadableMap options, final Promise promise)
+    {
+        Logger.d(NAME, "add: " + options);
+
         try{
             RNAudioPlayerTrack track  = new RNAudioPlayerTrack(options);
-            Log.d(TAG, "add: " + track);
-            mServer.add(track);
+            binder.addTrack(track);
             promise.resolve(true);
-        } catch (Exception ex) {
+        }
+
+        catch (Exception ex) {
             promise.reject("ERR_UNEXPECTED_EXCEPTION", ex);
         }
     }
 
-    /**
-     *
-     */
-    ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "onServiceDisconnected: ");
-            mBounded = false;
-            mServer = null;
+
+    @ReactMethod
+    public void hideNotification(final Promise promise)
+    {
+        Logger.d(NAME, "hideNotification");
+
+        try{
+            binder.hideNotification();
+            promise.resolve(true);
         }
 
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(TAG, "onServiceConnected: ");
-            mBounded = true;
-            LocalBinder mLocalBinder = (LocalBinder)service;
-            mServer = mLocalBinder.getServerInstance();
+        catch (Exception ex) {
+            promise.reject("ERR_UNEXPECTED_EXCEPTION", ex);
         }
-    };
+    }
 }

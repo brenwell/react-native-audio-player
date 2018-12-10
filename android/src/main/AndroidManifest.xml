@@ -1,6 +1,11 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.brenwell.rnaudioplayer">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <application>
+        <service android:name=".RNAudioPlayerService" />
+        <service android:name=".TestService" />
 
+    </application>
 </manifest>
   

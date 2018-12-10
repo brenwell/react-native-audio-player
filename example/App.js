@@ -12,13 +12,6 @@ import AudioPlayer from 'react-native-audio-player'
 
 console.log(AudioPlayer)
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
-
 type Props = {};
 export default class App extends Component<Props> {
 
@@ -27,22 +20,30 @@ export default class App extends Component<Props> {
         const isSetup = await AudioPlayer.setup({some:"bull"})
 
         console.log(isSetup,`isSetup`)
-        const data = await AudioPlayer.add({
-            title: 'Living on a Prayer',
-            description: 'A song by some dudes with crazy hair in the late 80s',
-            url: 'https://blach.com',
-            artwork: 'https://blach.com',
-        })
 
-        console.log(data)
+        setTimeout(async () => {
+            const data = await AudioPlayer.add({
+                title: 'Living on a Prayer',
+                description: 'A song by some dudes with crazy hair in the late 80s',
+                uri: 'https://cdn.jicki.zwei.biz/audio/tour/sample-griechisch-urlaub.mp3',
+                artwork: 'https://cdn.jicki.zwei.biz/image/deutsch.jpg',
+            })
+
+            console.log(data)
+        }, 2000);
+
+        setTimeout(async () => {
+            const data = await AudioPlayer.hideNotification()
+
+            console.log(data)
+        }, 10000);
+
     }
 
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-        <Text style={styles.instructions}>To get started, edit App.js</Text>
-        <Text style={styles.instructions}>{instructions}</Text>
+        <Text style={styles.welcome}>Welcome to React Native Audio Player</Text>
       </View>
     );
   }
