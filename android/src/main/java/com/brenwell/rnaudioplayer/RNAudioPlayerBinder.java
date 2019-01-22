@@ -68,7 +68,6 @@ public class RNAudioPlayerBinder {
         });
     }
 
-
     /**
      *  Service listener
      */

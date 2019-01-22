@@ -32,11 +32,11 @@ export default class App extends Component<Props> {
             console.log(data)
         }, 2000);
 
-        setTimeout(async () => {
-            const data = await AudioPlayer.hideNotification()
+        // setTimeout(async () => {
+        //     const data = await AudioPlayer.hideNotification()
 
-            console.log(data)
-        }, 10000);
+        //     console.log(data)
+        // }, 10000);
 
     }
 

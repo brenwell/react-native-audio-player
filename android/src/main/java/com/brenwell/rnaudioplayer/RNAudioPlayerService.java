@@ -49,13 +49,14 @@ public class RNAudioPlayerService extends Service {
 
     IBinder binder;
     int startMode = START_NOT_STICKY; // indicates how to behave if the service is killed
-    boolean allowRebind = true; // indicates whether onRebind should be used
+    boolean allowRebind = false; // indicates whether onRebind should be used
 
     private RNAudioPlayerTrack currentTrack;
     private SimpleExoPlayer player;
     private PlayerNotificationManager playerNotificationManager;
     private MediaSessionCompat mediaSession;
     private MediaSessionConnector mediaSessionConnector;
+    private Intent originalIntent;
 
     public static final int PLAYBACK_NOTIFICATION_ID = 1;
     public static final String PLAYBACK_CHANNEL_ID = "com.brenwell.rnaudioplayer.channelname";
@@ -117,25 +118,28 @@ public class RNAudioPlayerService extends Service {
         });
         playerNotificationManager.setPlayer(player);
 
-        mediaSession = new MediaSessionCompat(context, MEDIA_SESSION_TAG);
-        mediaSession.setActive(true);
+//        mediaSession = new MediaSessionCompat(context, MEDIA_SESSION_TAG);
+//        mediaSession.setActive(true);
 
-        playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
+//        playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
 
-        mediaSessionConnector = new MediaSessionConnector(mediaSession);
-        mediaSessionConnector.setQueueNavigator(new TimelineQueueNavigator(mediaSession) {
-            @Override
-            public MediaDescriptionCompat getMediaDescription(int windowIndex) {
-                return currentTrack.getMediaDescription(context);
-            }
-        });
+//        mediaSessionConnector = new MediaSessionConnector(mediaSession);
+//        mediaSessionConnector.setQueueNavigator(new TimelineQueueNavigator(mediaSession) {
+//            @Override
+//            public MediaDescriptionCompat getMediaDescription(int windowIndex) {
+//                return currentTrack.getMediaDescription(context);
+//            }
+//        });
 
-        mediaSessionConnector.setPlayer(player, null);
+//        mediaSessionConnector.setPlayer(player, null);
     }
 
     public void hideNotification()
     {
+        Logger.d(NAME, "hideNotification");
+
         playerNotificationManager.setPlayer(null);
+        playerNotificationManager = null;
     }
 
 
@@ -144,10 +148,13 @@ public class RNAudioPlayerService extends Service {
      */
     public void tearDown()
     {
+        Logger.d(NAME, "tearDown");
+
         player.stop();
-        mediaSession.release();
-        mediaSessionConnector.setPlayer(null, null);
+//        mediaSession.release();
+//        mediaSessionConnector.setPlayer(null, null);
         playerNotificationManager.setPlayer(null);
+        playerNotificationManager = null;
         player.release();
         player = null;
     }
@@ -160,7 +167,7 @@ public class RNAudioPlayerService extends Service {
 
         Logger.d(NAME, "onDestroy");
 
-        tearDown();
+        this.tearDown();
 
         super.onDestroy();
     }
@@ -175,7 +182,8 @@ public class RNAudioPlayerService extends Service {
 
         Logger.d(NAME, "onTaskRemoved() called with: rootIntent = [" + rootIntent + "]");
 
-        tearDown();
+        this.tearDown();
+        this.stopSelf();
 
         super.onTaskRemoved(rootIntent);
     }
@@ -237,6 +245,7 @@ public class RNAudioPlayerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        originalIntent = intent;
         Logger.d(NAME, "onStartCommand");
         return startMode;
     }
